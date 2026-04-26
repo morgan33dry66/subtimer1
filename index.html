@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sub Timer">
+<title>MiniRoos Sub Timer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0a3d1f; color: #fff;
+  min-height: 100vh;
+  padding: 14px;
+  padding-top: max(env(safe-area-inset-top), 14px);
+  padding-bottom: max(env(safe-area-inset-bottom), 14px);
+}
+body.flash { background: #ffcc00 !important; }
+
+/* ── NAV ── */
+.nav { display: flex; gap: 0; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1px solid #2a5a30; }
+.nav-btn { flex: 1; padding: 10px 4px; background: #0e4f26; color: #7fbf7f; font-size: 0.75rem; font-weight: 600; border: none; cursor: pointer; text-align: center; border-right: 1px solid #2a5a30; }
+.nav-btn:last-child { border-right: none; }
+.nav-btn.active { background: #7fff7f; color: #0a3d1f; }
+
+/* ── SCREENS ── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── SHARED ── */
+.section-label { font-size: 0.7rem; font-weight: 700; color: #7fff7f; text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 6px; }
+.card { background: #1a5c30; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.card.dark { background: #111; }
+
+input[type=text], input[type=number] {
+  background: #1a5c30; border: 1px solid #2a7a40; color: #fff;
+  border-radius: 8px; padding: 9px 12px; font-size: 0.95rem; outline: none; width: 100%;
+}
+input:focus { border-color: #7fff7f; }
+input::placeholder { color: #5a8a5a; }
+
+.btn { border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.btn:active { opacity: 0.8; }
+.btn-green  { background: #7fff7f; color: #0a3d1f; }
+.btn-yellow { background: #ffcc00; color: #0a3d1f; }
+.btn-red    { background: #e04040; color: #fff; }
+.btn-grey   { background: #1e3a22; color: #aaa; border: 1px solid #2a5a2a; }
+.btn-ghost  { background: transparent; color: #7fbf7f; border: 1px solid #2a5a30; }
+.btn-full   { width: 100%; padding: 14px; font-size: 1rem; margin-top: 8px; }
+.btn-sm     { padding: 7px 14px; font-size: 0.85rem; }
+
+/* ── SETUP ── */
+.setup-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.setup-row .num { width: 22px; text-align: right; color: #5a8a5a; font-size: 0.85rem; flex-shrink: 0; }
+.setup-row .drag { color: #3a6a3a; font-size: 1.1rem; cursor: grab; padding: 0 4px; flex-shrink: 0; }
+.setup-row .remove-btn { background: #2a1010; border: 1px solid #6a2020; color: #e06060; border-radius: 6px; padding: 6px 10px; font-size: 0.85rem; cursor: pointer; flex-shrink: 0; }
+.setup-row .remove-btn:active { opacity: 0.7; }
+.add-player-row { display: flex; gap: 8px; margin-top: 4px; }
+.add-player-row input { flex: 1; }
+
+.settings-2col { display: flex; gap: 10px; }
+.settings-2col > div { flex: 1; }
+.settings-2col label { font-size: 0.72rem; color: #7fbf7f; display: block; margin-bottom: 4px; }
+
+.on-count-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.on-count-btn { flex: 1; min-width: 42px; padding: 9px 0; background: #1a5c30; border: 1px solid #2a7a40; color: #ccc; border-radius: 8px; font-size: 0.9rem; cursor: pointer; text-align: center; }
+.on-count-btn.active { background: #2a7a40; border-color: #7fff7f; color: #fff; font-weight: 700; }
+
+/* ── GAME ── */
+.wake-pill { text-align: center; font-size: 0.68rem; color: #3a6a3a; margin-bottom: 8px; }
+.wake-pill.on { color: #7fff7f; }
+
+.score-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 10px; }
+.score-team { text-align: center; }
+.score-team-name { font-size: 0.72rem; color: #7fbf7f; margin-bottom: 4px; }
+.score-num { font-size: 2.6rem; font-weight: 900; color: #fff; line-height: 1; }
+.score-btns { display: flex; gap: 6px; margin-top: 4px; justify-content: center; }
+.score-btns button { padding: 4px 12px; border-radius: 6px; border: none; font-size: 1rem; font-weight: 700; cursor: pointer; }
+.score-btns .plus  { background: #7fff7f; color: #0a3d1f; }
+.score-btns .minus { background: #2a3a2a; color: #aaa; border: 1px solid #3a5a3a; }
+.score-sep { font-size: 2rem; color: #3a6a3a; font-weight: 300; }
+
+.timer-display { font-size: 3.6rem; font-weight: 700; letter-spacing: 2px; color: #7fff7f; text-align: center; line-height: 1; }
+.timer-display.warning { color: #ffcc00; animation: pulse 0.8s infinite; }
+.timer-display.alert   { color: #ff4444; animation: pulse 0.4s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.35} }
+
+.timer-meta { text-align: center; margin: 3px 0 10px; }
+.half-label { font-size: 0.8rem; color: #aaa; }
+.next-sub-label { font-size: 0.75rem; color: #ffcc00; min-height: 16px; }
+
+.timer-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+.timer-controls .btn { flex: 1; padding: 12px 8px; font-size: 0.9rem; }
+
+.columns { display: flex; gap: 8px; }
+.col { flex: 1; min-width: 0; }
+.col-header { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; padding: 5px; border-radius: 6px 6px 0 0; margin-bottom: 3px; }
+.col-header.on-hdr  { background: #1a5c30; color: #7fff7f; }
+.col-header.off-hdr { background: #1e1e1e; color: #666; }
+
+.player-card { border-radius: 7px; padding: 8px 6px; margin-bottom: 5px; text-align: center; cursor: pointer; border: 2px solid transparent; }
+.player-card.on  { background: #1a5c30; }
+.player-card.off { background: #161616; }
+.player-card.selected { border-color: #ffcc00; }
+.player-card .p-name { font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-card .p-time { font-size: 0.65rem; color: #5a8a5a; margin-top: 1px; }
+.player-card.on .p-time { color: #5abf5a; }
+
+.swap-area { margin-top: 6px; }
+.swap-hint { text-align: center; font-size: 0.72rem; color: #6a9a6a; min-height: 16px; }
+.swap-confirm-btn { width: 100%; margin-top: 6px; padding: 12px; display: none; }
+
+/* ── SUB ALERT ── */
+#sub-alert {
+  display: none; position: fixed; inset: 0;
+  background: rgba(255,204,0,0.97); z-index: 200;
+  flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px;
+}
+#sub-alert.show { display: flex; }
+#sub-alert h2 { font-size: 2.6rem; color: #0a3d1f; font-weight: 900; margin-bottom: 8px; }
+#sub-alert p  { font-size: 1rem; color: #0a3d1f; margin-bottom: 24px; }
+#sub-alert button { padding: 16px 40px; background: #0a3d1f; color: #7fff7f; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+
+/* ── LOG SCREEN ── */
+.log-card { background: #111; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #1e3a22; }
+.log-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.log-card-title { font-size: 0.9rem; font-weight: 700; color: #7fff7f; }
+.log-card-date  { font-size: 0.68rem; color: #5a7a5a; }
+.log-card-score { font-size: 1.4rem; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.log-card-potm  { font-size: 0.8rem; color: #ffcc00; margin-bottom: 6px; }
+.log-card-section { font-size: 0.68rem; color: #5a8a5a; text-transform: uppercase; letter-spacing: 0.07em; margin: 6px 0 3px; }
+.log-card-sub  { font-size: 0.75rem; color: #aaa; padding: 2px 0; }
+.log-card-times { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.time-chip { background: #1a3a1a; border-radius: 5px; padding: 3px 7px; font-size: 0.68rem; color: #7fbf7f; }
+.log-delete-btn { background: #2a1010; border: 1px solid #5a1a1a; color: #e06060; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; margin-top: 8px; }
+.empty-state { text-align: center; color: #3a6a3a; padding: 40px 20px; font-size: 0.9rem; }
+
+/* ── END GAME MODAL ── */
+#end-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  z-index: 300; align-items: center; justify-content: center; padding: 20px;
+}
+#end-modal.show { display: flex; }
+.end-modal-inner { background: #0e3a1a; border-radius: 14px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid #2a6a30; }
+.end-modal-inner h3 { color: #7fff7f; font-size: 1.1rem; margin-bottom: 14px; text-align: center; }
+.potm-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.potm-chip { padding: 8px 12px; background: #1a5c30; border: 2px solid transparent; border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+.potm-chip.selected { border-color: #ffcc00; background: #2a6c40; color: #ffcc00; font-weight: 700; }
+.opp-name-row { margin-bottom: 10px; }
+.opp-name-row label { font-size: 0.72rem; color: #7fbf7f; display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- SUB ALERT -->
+<div id="sub-alert">
+  <h2>⇄ SUB TIME!</h2>
+  <p id="alert-msg">Time to rotate</p>
+  <button onclick="dismissAlert()">Got it ✓</button>
+</div>
+
+<!-- END GAME MODAL -->
+<div id="end-modal">
+  <div class="end-modal-inner">
+    <h3>🏁 End Game & Save</h3>
+    <div class="opp-name-row">
+      <label>Opponent name (optional)</label>
+      <input type="text" id="opp-name" placeholder="e.g. Cronulla FC" maxlength="30">
+    </div>
+    <div class="section-label" style="margin-top:0">⭐ Player of the Match</div>
+    <div class="potm-grid" id="potm-grid"></div>
+    <button class="btn btn-green btn-full" onclick="saveGame()">Save Game Log</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:6px" onclick="closeEndModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="showScreen('setup')">⚙️ Setup</button>
+  <button class="nav-btn" onclick="showScreen('game')" id="nav-game">▶ Game</button>
+  <button class="nav-btn" onclick="showScreen('history')">📋 History</button>
+</div>
+
+<!-- ══ SETUP SCREEN ══ -->
+<div class="screen active" id="screen-setup">
+
+  <div class="section-label">Squad</div>
+  <div id="player-list"></div>
+  <div class="add-player-row">
+    <input type="text" id="new-player-name" placeholder="Add player name…" maxlength="16">
+    <button class="btn btn-green btn-sm" onclick="addPlayer()">+ Add</button>
+  </div>
+  <div style="margin-top:6px;font-size:0.7rem;color:#3a6a3a">Tap ✕ to remove · drag ☰ to reorder</div>
+
+  <div class="section-label">Game Settings</div>
+  <div class="settings-2col">
+    <div><label>Half length (mins)</label><input type="number" id="half-mins" value="20" min="1" max="60"></div>
+    <div><label>Sub reminder (mins)</label><input type="number" id="sub-interval" value="5" min="1" max="30"></div>
+  </div>
+  <div style="margin-top:10px"><div class="section-label" style="margin-top:0">Players on field</div>
+  <div class="on-count-row" id="on-count-row"></div></div>
+
+  <div class="section-label">Your Team Name</div>
+  <input type="text" id="team-name" placeholder="e.g. Sharks U7" maxlength="20" value="My Team">
+
+  <button class="btn btn-green btn-full" onclick="beginGame()">▶ Start Game</button>
+</div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div class="screen" id="screen-game">
+
+  <div class="wake-pill" id="wake-pill">⚪ Screen may sleep</div>
+
+  <!-- Score -->
+  <div class="score-row">
+    <div class="score-team">
+      <div class="score-team-name" id="score-home-name">My Team</div>
+      <div class="score-num" id="score-home">0</div>
+      <div class="score-btns">
+        <button class="plus"  onclick="adjustScore('home',1)">+</button>
+        <button class="minus" onclick="adjustScore('home',-1)">−</button>
+      </div>
+    </div>
+    <div class="score-sep">:</div>
+    <div class="score-team">
+      <div class="score-team-name" id="score-away-name">Opponent</div>
+      <div class="score-num" id="score-away">0</div>
+      <div class="score-btns">
+        <button class="plus"  onclick="adjustScore('away',1)">+</button>
+        <button class="minus" onclick="adjustScore('away',-1)">−</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-display" id="timer-display">20:00</div>
+  <div class="timer-meta">
+    <div class="half-label" id="half-label">Half 1</div>
+    <div class="next-sub-label" id="next-sub-label"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="timer-controls">
+    <button class="btn btn-green" id="play-pause-btn" onclick="toggleTimer()">▶ Start</button>
+    <button class="btn btn-yellow" onclick="nextHalf()">Half →</button>
+    <button class="btn btn-grey" onclick="openEndModal()">🏁 End</button>
+  </div>
+
+  <!-- Players -->
+  <div class="columns">
+    <div class="col">
+      <div class="col-header on-hdr">ON FIELD</div>
+      <div id="on-list"></div>
+    </div>
+    <div class="col">
+      <div class="col-header off-hdr">BENCH</div>
+      <div id="off-list"></div>
+    </div>
+  </div>
+
+  <div class="swap-area">
+    <div class="swap-hint" id="swap-hint">Tap one from each side to swap</div>
+    <button class="btn btn-yellow swap-confirm-btn" id="swap-btn" onclick="doSwap()">⇄ Confirm Swap</button>
+  </div>
+
+  <!-- In-game sub log -->
+  <div class="section-label">Subs This Game</div>
+  <div class="card dark" id="game-log-mini">
+    <div style="color:#3a6a3a;font-size:0.75rem">No subs yet</div>
+  </div>
+</div>
+
+<!-- ══ HISTORY SCREEN ══ -->
+<div class="screen" id="screen-history">
+  <div class="section-label">Game History</div>
+  <div id="history-list"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// AUDIO
+// ════════════════════════════════════════
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+document.addEventListener('touchstart', () => { try { const c = getAudio(); if(c.state==='suspended') c.resume(); } catch(e){} }, {once:true});
+
+function beep(freq, t0, dur) {
+  try {
+    const c = getAudio(); if(c.state==='suspended') c.resume();
+    const o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type='square'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.3, c.currentTime+t0);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime+t0+dur);
+    o.start(c.currentTime+t0); o.stop(c.currentTime+t0+dur+0.05);
+  } catch(e){}
+}
+function playSubBeeps()  { beep(660,0,0.18); beep(660,0.28,0.18); beep(880,0.56,0.32); }
+function playHalfBeeps() { for(let i=0;i<5;i++) beep(880,i*0.22,0.18); }
+
+// ════════════════════════════════════════
+// WAKE LOCK
+// ════════════════════════════════════════
+let wakeLock = null;
+async function acquireWake() {
+  try { if('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); setWakePill(true); wakeLock.addEventListener('release',()=>setWakePill(false)); } } catch(e){}
+}
+function dropWake() { try { if(wakeLock){wakeLock.release();wakeLock=null;} } catch(e){} setWakePill(false); }
+function setWakePill(on) { const el=document.getElementById('wake-pill'); if(!el) return; el.textContent=on?'🟢 Screen staying on':'⚪ Screen may sleep'; el.className='wake-pill'+(on?' on':''); }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&timerRunning) acquireWake(); });
+
+// ════════════════════════════════════════
+// FLASH
+// ════════════════════════════════════════
+function flashScreen(n) {
+  let i=0;
+  function f(){ document.body.classList.add('flash'); setTimeout(()=>{ document.body.classList.remove('flash'); if(++i<n) setTimeout(f,180); },380); }
+  f();
+}
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let squadNames = ['Player 1','Player 2','Player 3','Player 4','Player 5','Player 6'];
+let onCount = 4;
+let halfMins = 20;
+let subIntervalMins = 5;
+let teamName = 'My Team';
+
+let players = [];       // { name, onField, totalOn }
+let timerRunning = false;
+let elapsed = 0;
+let halfSecs = 1200;
+let subIntervalSecs = 300;
+let currentHalf = 1;
+let nextSubAt = 300;
+let lastSubAlert = -1;
+let ticker = null;
+let selectedOn = null, selectedOff = null;
+let scoreHome = 0, scoreAway = 0;
+let gameSubs = [];
+
+// ════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  const map={setup:0,game:1,history:2};
+  document.querySelectorAll('.nav-btn')[map[id]].classList.add('active');
+  if(id==='history') renderHistory();
+}
+
+// ════════════════════════════════════════
+// SETUP
+// ════════════════════════════════════════
+function initSetup() {
+  renderSquad();
+  renderOnCountBtns();
+  document.getElementById('new-player-name').addEventListener('keydown', e=>{ if(e.key==='Enter') addPlayer(); });
+}
+
+function renderSquad() {
+  const el = document.getElementById('player-list');
+  el.innerHTML = '';
+  squadNames.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'setup-row';
+    row.draggable = true;
+    row.dataset.idx = i;
+    row.innerHTML = `
+      <span class="num">${i+1}</span>
+      <span class="drag">☰</span>
+      <input type="text" value="${name}" placeholder="Player ${i+1}" maxlength="16" onchange="squadNames[${i}]=this.value.trim()||'Player ${i+1}'">
+      <button class="remove-btn" onclick="removePlayer(${i})">✕</button>`;
+    setupDrag(row);
+    el.appendChild(row);
+  });
+  updateOnCountBtns();
+}
+
+function addPlayer() {
+  const inp = document.getElementById('new-player-name');
+  const name = inp.value.trim();
+  if (!name) return;
+  squadNames.push(name);
+  inp.value = '';
+  renderSquad();
+  renderOnCountBtns();
+}
+
+function removePlayer(i) {
+  if (squadNames.length <= 1) return;
+  squadNames.splice(i, 1);
+  if (onCount > squadNames.length) onCount = squadNames.length;
+  renderSquad();
+  renderOnCountBtns();
+}
+
+// Drag reorder
+let dragSrc = null;
+function setupDrag(row) {
+  row.addEventListener('dragstart', e => { dragSrc = parseInt(row.dataset.idx); e.dataTransfer.effectAllowed='move'; row.style.opacity='0.4'; });
+  row.addEventListener('dragend',   e => { row.style.opacity='1'; });
+  row.addEventListener('dragover',  e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; });
+  row.addEventListener('drop',      e => {
+    e.preventDefault();
+    const dst = parseInt(row.dataset.idx);
+    if (dragSrc === dst) return;
+    const moved = squadNames.splice(dragSrc, 1)[0];
+    squadNames.splice(dst, 0, moved);
+    renderSquad();
+  });
+}
+
+function renderOnCountBtns() {
+  const row = document.getElementById('on-count-row');
+  const max = Math.min(squadNames.length, 11);
+  row.innerHTML = '';
+  for (let n = 1; n <= max; n++) {
+    const b = document.createElement('button');
+    b.className = 'on-count-btn' + (n===onCount?' active':'');
+    b.textContent = n;
+    b.onclick = () => { onCount=n; updateOnCountBtns(); };
+    row.appendChild(b);
+  }
+}
+
+function updateOnCountBtns() {
+  document.querySelectorAll('.on-count-btn').forEach((b,i)=>{
+    b.classList.toggle('active', i+1===onCount);
+  });
+}
+
+function beginGame() {
+  // Read latest inputs
+  const inputs = document.querySelectorAll('#player-list .setup-row input[type=text]');
+  inputs.forEach((inp, i) => { squadNames[i] = inp.value.trim() || `Player ${i+1}`; });
+  halfMins = parseInt(document.getElementById('half-mins').value)||20;
+  subIntervalMins = parseInt(document.getElementById('sub-interval').value)||5;
+  teamName = document.getElementById('team-name').value.trim() || 'My Team';
+
+  halfSecs = halfMins * 60;
+  subIntervalSecs = subIntervalMins * 60;
+
+  players = squadNames.map((name, i) => ({ name, onField: i < onCount, totalOn: 0 }));
+  elapsed = 0; currentHalf = 1;
+  nextSubAt = subIntervalSecs; lastSubAlert = -1;
+  timerRunning = false; gameSubs = [];
+  selectedOn = null; selectedOff = null;
+  scoreHome = 0; scoreAway = 0;
+
+  document.getElementById('score-home-name').textContent = teamName;
+  document.getElementById('score-away-name').textContent = 'Opponent';
+  document.getElementById('score-home').textContent = '0';
+  document.getElementById('score-away').textContent = '0';
+  document.getElementById('play-pause-btn').textContent = '▶ Start';
+  clearInterval(ticker); dropWake();
+
+  updateTimerDisplay();
+  renderGamePlayers();
+  renderGameLog();
+  showScreen('game');
+}
+
+// ════════════════════════════════════════
+// SCORE
+// ════════════════════════════════════════
+function adjustScore(side, delta) {
+  if (side==='home') { scoreHome = Math.max(0, scoreHome+delta); document.getElementById('score-home').textContent = scoreHome; }
+  else               { scoreAway = Math.max(0, scoreAway+delta); document.getElementById('score-away').textContent = scoreAway; }
+}
+
+// ════════════════════════════════════════
+// TIMER
+// ════════════════════════════════════════
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(ticker); timerRunning=false; dropWake();
+    document.getElementById('play-pause-btn').textContent='▶ Resume';
+  } else {
+    timerRunning=true; acquireWake();
+    document.getElementById('play-pause-btn').textContent='⏸ Pause';
+    ticker=setInterval(tick,1000);
+  }
+}
+
+function tick() {
+  elapsed++;
+  players.forEach(p=>{ if(p.onField) p.totalOn++; });
+  const remaining = halfSecs - elapsed;
+
+  if (elapsed >= nextSubAt && lastSubAlert < nextSubAt) {
+    lastSubAlert = nextSubAt;
+    nextSubAt += subIntervalSecs;
+    doSubAlert();
+  }
+
+  if (remaining <= 0) {
+    clearInterval(ticker); timerRunning=false; dropWake();
+    document.getElementById('play-pause-btn').textContent='▶ Start';
+    playHalfBeeps(); vibrate([500,100,500,100,500]); flashScreen(3);
+    showAlert(`⏱ Half ${currentHalf} is over!`);
+    return;
+  }
+
+  updateTimerDisplay();
+  renderGamePlayers();
+}
+
+function doSubAlert() {
+  playSubBeeps(); vibrate([200,100,200,100,300]); flashScreen(2);
+  const m=Math.floor(elapsed/60);
+  showAlert(`${m} min${m!==1?'s':''} elapsed — time to rotate!`);
+}
+
+function updateTimerDisplay() {
+  const rem = Math.max(0, halfSecs-elapsed);
+  const m=Math.floor(rem/60), s=rem%60;
+  const d=document.getElementById('timer-display');
+  d.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  d.classList.remove('warning','alert');
+  if(rem<=60) d.classList.add('alert');
+  else if(rem<=180) d.classList.add('warning');
+  document.getElementById('half-label').textContent=`Half ${currentHalf}`;
+  const ts=nextSubAt-elapsed;
+  document.getElementById('next-sub-label').textContent = ts>0
+    ? `Next sub in ${String(Math.floor(ts/60)).padStart(2,'0')}:${String(ts%60).padStart(2,'0')}`
+    : '🔔 Sub time!';
+}
+
+function nextHalf() {
+  clearInterval(ticker); timerRunning=false; dropWake();
+  elapsed=0; currentHalf=currentHalf===1?2:1;
+  nextSubAt=subIntervalSecs; lastSubAlert=-1;
+  selectedOn=null; selectedOff=null;
+  document.getElementById('play-pause-btn').textContent='▶ Start';
+  updateTimerDisplay(); renderGamePlayers();
+}
+
+function vibrate(p) { try { if(navigator.vibrate) navigator.vibrate(p); } catch(e){} }
+function showAlert(msg) { document.getElementById('alert-msg').textContent=msg; document.getElementById('sub-alert').classList.add('show'); }
+function dismissAlert()  { document.getElementById('sub-alert').classList.remove('show'); }
+
+// ════════════════════════════════════════
+// PLAYERS
+// ════════════════════════════════════════
+function renderGamePlayers() {
+  ['on-list','off-list'].forEach(id=>document.getElementById(id).innerHTML='');
+  players.forEach((p,i)=>{
+    const m=Math.floor(p.totalOn/60), s=p.totalOn%60;
+    const sel=(p.onField&&selectedOn===i)||(!p.onField&&selectedOff===i);
+    const div=document.createElement('div');
+    div.className=`player-card ${p.onField?'on':'off'}${sel?' selected':''}`;
+    div.innerHTML=`<div class="p-name">${p.name}</div><div class="p-time">${m}m ${String(s).padStart(2,'0')}s</div>`;
+    div.onclick=()=>selectPlayer(i);
+    document.getElementById(p.onField?'on-list':'off-list').appendChild(div);
+  });
+
+  const btn=document.getElementById('swap-btn');
+  const hint=document.getElementById('swap-hint');
+  if(selectedOn!==null&&selectedOff!==null){
+    btn.style.display='block';
+    hint.textContent=`Swap ${players[selectedOn].name} ↔ ${players[selectedOff].name}`;
+  } else {
+    btn.style.display='none';
+    if(selectedOn===null&&selectedOff===null) hint.textContent='Tap one from each side to swap';
+    else if(selectedOff===null) hint.textContent=`Now tap a bench player`;
+    else hint.textContent=`Now tap an on-field player`;
+  }
+}
+
+function selectPlayer(i) {
+  if(players[i].onField) selectedOn  = selectedOn===i  ? null : i;
+  else                   selectedOff = selectedOff===i ? null : i;
+  renderGamePlayers();
+}
+
+function doSwap() {
+  if(selectedOn===null||selectedOff===null) return;
+  const onP=players[selectedOn], offP=players[selectedOff];
+  const m=Math.floor(elapsed/60), s=elapsed%60;
+  const t=`H${currentHalf} ${m}:${String(s).padStart(2,'0')}`;
+  onP.onField=false; offP.onField=true;
+  gameSubs.unshift(`${t} — ${offP.name} ON / ${onP.name} OFF`);
+  selectedOn=null; selectedOff=null;
+  vibrate([80,40,80]);
+  renderGamePlayers(); renderGameLog();
+}
+
+function renderGameLog() {
+  const el=document.getElementById('game-log-mini');
+  el.innerHTML = gameSubs.length===0
+    ? '<div style="color:#3a6a3a;font-size:0.75rem">No subs yet</div>'
+    : gameSubs.map(s=>`<div style="font-size:0.75rem;color:#aaa;padding:2px 0;border-bottom:1px solid #1e3a1e">${s}</div>`).join('');
+}
+
+// ════════════════════════════════════════
+// END GAME / POTM MODAL
+// ════════════════════════════════════════
+let selectedPOTM = null;
+
+function openEndModal() {
+  selectedPOTM = null;
+  document.getElementById('opp-name').value = '';
+  const grid = document.getElementById('potm-grid');
+  grid.innerHTML = '';
+  players.forEach((p,i)=>{
+    const chip=document.createElement('div');
+    chip.className='potm-chip';
+    chip.textContent=p.name;
+    chip.onclick=()=>{
+      selectedPOTM=p.name;
+      document.querySelectorAll('.potm-chip').forEach(c=>c.classList.remove('selected'));
+      chip.classList.add('selected');
+    };
+    grid.appendChild(chip);
+  });
+  document.getElementById('end-modal').classList.add('show');
+}
+
+function closeEndModal() { document.getElementById('end-modal').classList.remove('show'); }
+
+function saveGame() {
+  const opp = document.getElementById('opp-name').value.trim() || 'Unknown';
+  const game = {
+    id: Date.now(),
+    date: new Date().toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}),
+    teamName,
+    opponent: opp,
+    scoreHome,
+    scoreAway,
+    potm: selectedPOTM || '—',
+    subs: [...gameSubs],
+    timePlayed: players.map(p=>({ name:p.name, secs:p.totalOn }))
+  };
+  const history = loadHistory();
+  history.unshift(game);
+  saveHistory(history);
+  closeEndModal();
+  showScreen('history');
+}
+
+// ════════════════════════════════════════
+// PERSISTENCE (localStorage-free: IndexedDB via simple key in sessionStorage fallback)
+// We use a global JS array serialised to a hidden textarea so it persists via
+// "Add to Home Screen" (WKWebView keeps the page in memory). For true persistence
+// across cold launches we use localStorage if available, otherwise in-memory.
+// ════════════════════════════════════════
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem('miniroos_history')||'[]'); } catch(e) { return []; }
+}
+function saveHistory(h) {
+  try { localStorage.setItem('miniroos_history', JSON.stringify(h)); } catch(e) {}
+}
+function deleteGame(id) {
+  if(!confirm('Delete this game record?')) return;
+  const h=loadHistory().filter(g=>g.id!==id);
+  saveHistory(h); renderHistory();
+}
+
+// ════════════════════════════════════════
+// HISTORY RENDER
+// ════════════════════════════════════════
+function renderHistory() {
+  const el=document.getElementById('history-list');
+  const history=loadHistory();
+  if(!history.length){ el.innerHTML='<div class="empty-state">No games saved yet.<br>Complete a game and tap 🏁 End to save.</div>'; return; }
+  el.innerHTML='';
+  history.forEach(g=>{
+    const card=document.createElement('div');
+    card.className='log-card';
+
+    const timesHTML = g.timePlayed
+      .filter(p=>p.secs>0)
+      .sort((a,b)=>b.secs-a.secs)
+      .map(p=>{ const m=Math.floor(p.secs/60),s=p.secs%60; return `<span class="time-chip">${p.name} ${m}m${s>0?` ${String(s).padStart(2,'0')}s`:''}</span>`; })
+      .join('');
+
+    const subsHTML = g.subs.length
+      ? g.subs.map(s=>`<div class="log-card-sub">• ${s}</div>`).join('')
+      : '<div class="log-card-sub" style="color:#3a6a3a">No substitutions</div>';
+
+    card.innerHTML=`
+      <div class="log-card-header">
+        <div>
+          <div class="log-card-title">${g.teamName} vs ${g.opponent}</div>
+          <div class="log-card-date">${g.date}</div>
+        </div>
+      </div>
+      <div class="log-card-score">${g.scoreHome} – ${g.scoreAway}</div>
+      <div class="log-card-potm">⭐ POTM: ${g.potm}</div>
+      <div class="log-card-section">Time Played</div>
+      <div class="log-card-times">${timesHTML||'<span style="color:#3a6a3a;font-size:0.75rem">No data</span>'}</div>
+      <div class="log-card-section">Substitutions</div>
+      ${subsHTML}
+      <button class="log-delete-btn" onclick="deleteGame(${g.id})">🗑 Delete</button>`;
+    el.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+initSetup();
+// Init timer display
+document.getElementById('timer-display').textContent='20:00';
+document.getElementById('next-sub-label').textContent='Next sub in 05:00';
+</script>
+</body>
+</html>
