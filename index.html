@@ -266,6 +266,14 @@ input::placeholder { color: #5a8a5a; }
     <button class="btn btn-yellow swap-confirm-btn" id="swap-btn" onclick="doSwap()">⇄ Confirm Swap</button>
   </div>
 
+  <!-- Late arrival -->
+  <div class="section-label">Late Arrival?</div>
+  <div class="add-player-row" style="margin-bottom:4px">
+    <input type="text" id="late-player-name" placeholder="Player name…" maxlength="16">
+    <button class="btn btn-yellow btn-sm" onclick="addLatePlayer()">+ Add</button>
+  </div>
+  <div style="font-size:0.68rem;color:#3a6a3a;margin-bottom:10px">Added to bench, time tracked from now</div>
+
   <!-- In-game sub log -->
   <div class="section-label">Subs This Game</div>
   <div class="card dark" id="game-log-mini">
@@ -581,6 +589,21 @@ function selectPlayer(i) {
   if(players[i].onField) selectedOn  = selectedOn===i  ? null : i;
   else                   selectedOff = selectedOff===i ? null : i;
   renderGamePlayers();
+}
+
+function addLatePlayer() {
+  const inp = document.getElementById('late-player-name');
+  const name = inp.value.trim();
+  if (!name) return;
+  // Add to bench (not on field), totalOn starts at 0 from this moment
+  players.push({ name, onField: false, totalOn: 0 });
+  squadNames.push(name);
+  const m = Math.floor(elapsed/60), s = elapsed%60;
+  gameSubs.unshift(`H${currentHalf} ${m}:${String(s).padStart(2,'0')} — ${name} arrived (bench)`);
+  inp.value = '';
+  renderGamePlayers();
+  renderGameLog();
+  vibrate([80,40,80]);
 }
 
 function doSwap() {
