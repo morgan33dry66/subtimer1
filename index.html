@@ -636,10 +636,8 @@ function updateSuggestion() {
   el.innerHTML=`<div class="suggestion-box">
     ⏱ <strong>Equal Time Tip:</strong> With ${avail} available players and ${onCount} on field across ${totalMins} mins total,
     each player gets <strong>~${fairM}m${fairS>0?' '+fairS+'s':''}</strong> on field.
-    Set sub reminder to <strong>every ${display} min${display!==1?'s':''}</strong> and rotate 1 player each time.
+    Suggested sub reminder: <strong>every ${display} min${display!==1?'s':''}</strong> — rotate 1 player each time.
   </div>`;
-  // auto-fill sub interval
-  if(display>0) document.getElementById('sub-interval').value=display;
 }
 
 // ════════════════════════════════════════
