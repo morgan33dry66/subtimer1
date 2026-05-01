@@ -92,8 +92,7 @@ select option { background: #0d2240; }
 .suggestion-box strong { color: #fff; }
 
 /* ── GAME ── */
-.wake-pill { text-align: center; font-size: 0.68rem; color: #1a3a5a; margin-bottom: 6px; }
-.wake-pill.on { color: #4fc3f7; }
+.wake-pill { display: none; }
 
 /* Period progress */
 .period-progress { display: flex; gap: 4px; justify-content: center; margin-bottom: 8px; }
@@ -378,13 +377,29 @@ select option { background: #0d2240; }
 // AUDIO
 // ════════════════════════════════════════
 let audioCtx = null;
+let audioUnlocked = false;
+
 function getAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
-document.addEventListener('touchstart', () => {
-  try { const c=getAudio(); if(c.state==='suspended') c.resume(); } catch(e){}
-}, {once:true});
+
+// iOS needs a silent buffer played on touch to unlock audio for all future automatic calls
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const c = getAudio();
+    const buf = c.createBuffer(1, 1, 22050);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.connect(c.destination);
+    src.start(0);
+    if (c.state === 'suspended') c.resume();
+    audioUnlocked = true;
+  } catch(e) {}
+}
+document.addEventListener('touchstart', unlockAudio);
+document.addEventListener('touchend',   unlockAudio);
 
 function beep(freq, t0, dur) {
   try {
