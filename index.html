@@ -679,6 +679,7 @@ function beginGame() {
     name,
     onField: !squadUnavailable[i] && players_placed(i),
     totalOn: 0,
+    subCount: 0,
     unavailable: squadUnavailable[i]
   }));
 
@@ -835,10 +836,12 @@ function renderGamePlayers(){
   players.forEach((p,i)=>{
     if(p.unavailable) return; // don't show unavailable
     const m=Math.floor(p.totalOn/60),s=p.totalOn%60;
+    const subs=p.subCount||0;
     const sel=(p.onField&&selectedOn===i)||(!p.onField&&selectedOff===i);
     const div=document.createElement('div');
     div.className=`player-card ${p.onField?'on':'off'}${sel?' selected':''}`;
-    div.innerHTML=`<div class="p-name">${p.name}</div><div class="p-time">${m}m ${String(s).padStart(2,'0')}s</div>`;
+    const subBadge = subs>0 ? `<span style="color:#ffcc00;font-size:0.65rem;margin-left:4px">${subs} off</span>` : '';
+    div.innerHTML=`<div class="p-name">${p.name}</div><div class="p-time">${m}m ${String(s).padStart(2,'0')}s${subBadge}</div>`;
     div.onclick=()=>selectPlayer(i);
     document.getElementById(p.onField?'on-list':'off-list').appendChild(div);
   });
@@ -868,7 +871,7 @@ function doSwap(){
   const m=Math.floor(elapsed/60),s=elapsed%60;
   // save for undo
   swapHistory.push({onIdx:selectedOn,offIdx:selectedOff,onName:onP.name,offName:offP.name});
-  onP.onField=false; offP.onField=true;
+  onP.onField=false; onP.subCount=(onP.subCount||0)+1; offP.onField=true;
   gameSubs.unshift(`${periodShort(currentPeriod)} ${m}:${String(s).padStart(2,'0')} — ${offP.name} ON / ${onP.name} OFF`);
   selectedOn=null;selectedOff=null;
   vibrate([80,40,80]);
@@ -880,6 +883,7 @@ function undoSwap(){
   if(swapHistory.length===0) return;
   const last=swapHistory.pop();
   players[last.onIdx].onField=true;
+  if(players[last.onIdx].subCount>0) players[last.onIdx].subCount--;
   players[last.offIdx].onField=false;
   gameSubs.shift(); // remove last log entry
   if(swapHistory.length===0) document.getElementById('undo-btn').style.display='none';
