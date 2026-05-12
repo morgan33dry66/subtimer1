@@ -687,6 +687,8 @@ function beginGame() {
   let placed=0;
   players.forEach(p=>{ p.onField=false; });
   players.forEach(p=>{ if(!p.unavailable&&placed<onCount){ p.onField=true; placed++; } });
+  // anyone starting on the bench already has 1 rotation against them
+  players.forEach(p=>{ if(!p.onField&&!p.unavailable) p.subCount=1; });
 
   elapsed=0; currentPeriod=1; nextSubAt=subIntervalSecs; lastSubAlert=-1;
   timerRunning=false; gameSubs=[]; swapHistory=[];
